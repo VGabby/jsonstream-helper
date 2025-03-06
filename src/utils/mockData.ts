@@ -184,28 +184,31 @@ export const mockEndpoints: EndpointData[] = [
 
 // Helper functions for data processing
 export const processAnalyticsData = (data: any) => {
+  if (!data) return { pageViewsArray: [], dailyVisitors: [], deviceData: [], browserData: [] };
+  
   // Convert the pageViews object to an array format suitable for charts
-  const pageViewsArray = Object.entries(data.pageViews).map(([page, views]) => ({
+  const pageViewsArray = data.pageViews ? Object.entries(data.pageViews).map(([page, views]) => ({
     page,
     views
-  }));
+  })) : [];
 
   // Format the daily visitors data for a line chart
-  const dailyVisitors = data.timeRanges.daily.dates.map((date: string, index: number) => ({
-    date,
-    visitors: data.timeRanges.daily.visitors[index]
-  }));
+  const dailyVisitors = data.timeRanges?.daily?.dates ? 
+    data.timeRanges.daily.dates.map((date: string, index: number) => ({
+      date,
+      visitors: data.timeRanges.daily.visitors[index]
+    })) : [];
 
   // Format device and browser data for pie charts
-  const deviceData = Object.entries(data.devices).map(([device, percentage]) => ({
+  const deviceData = data.devices ? Object.entries(data.devices).map(([device, percentage]) => ({
     name: device,
     value: percentage
-  }));
+  })) : [];
 
-  const browserData = Object.entries(data.browsers).map(([browser, percentage]) => ({
+  const browserData = data.browsers ? Object.entries(data.browsers).map(([browser, percentage]) => ({
     name: browser,
     value: percentage
-  }));
+  })) : [];
 
   return {
     pageViewsArray,
@@ -216,6 +219,8 @@ export const processAnalyticsData = (data: any) => {
 };
 
 export const processOrdersData = (orders: any[]) => {
+  if (!orders || !Array.isArray(orders)) return { totalRevenue: 0, ordersByStatus: {}, paymentMethods: {}, orderCount: 0 };
+  
   // Calculate total revenue
   const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
   
@@ -240,6 +245,16 @@ export const processOrdersData = (orders: any[]) => {
 };
 
 export const processProductsData = (products: any[]) => {
+  if (!products || !Array.isArray(products) || products.length === 0) {
+    return {
+      avgRating: 0,
+      highestInventory: null,
+      lowestInventory: null,
+      productsByCategory: {},
+      totalProducts: 0
+    };
+  }
+  
   // Calculate average rating
   const avgRating = products.reduce((sum, product) => sum + product.rating, 0) / products.length;
   
@@ -263,8 +278,11 @@ export const processProductsData = (products: any[]) => {
 };
 
 export const extractKeyMetrics = (endpoint: string, data: any): { label: string; value: any }[] => {
+  if (!data) return [];
+  
   switch (endpoint) {
     case "users":
+      if (!Array.isArray(data)) return [];
       return [
         { label: "Total Users", value: data.length },
         { label: "Premium Users", value: data.filter((user: any) => user.subscription === "premium").length },
@@ -272,21 +290,27 @@ export const extractKeyMetrics = (endpoint: string, data: any): { label: string;
         { label: "Avg. Sessions", value: Math.round(data.reduce((sum: number, user: any) => sum + user.sessions, 0) / data.length) }
       ];
     case "products":
+      if (!Array.isArray(data)) return [];
       const processedData = processProductsData(data);
       return [
         { label: "Total Products", value: processedData.totalProducts },
         { label: "Avg. Rating", value: processedData.avgRating.toFixed(1) },
-        { label: "Low Stock", value: processedData.lowestInventory.inventory },
+        { label: "Low Stock", value: processedData.lowestInventory?.inventory || 0 },
         { label: "Categories", value: Object.keys(processedData.productsByCategory).length }
       ];
     case "analytics":
+      if (!data) return [];
       return [
-        { label: "Total Visitors", value: data.timeRanges.daily.visitors.reduce((a: number, b: number) => a + b, 0) },
-        { label: "Most Viewed", value: Object.entries(data.pageViews).sort((a, b) => (b[1] as number) - (a[1] as number))[0][0] },
-        { label: "Mobile Users", value: `${data.devices.mobile}%` },
-        { label: "Top Browser", value: `${Object.entries(data.browsers).sort((a, b) => (b[1] as number) - (a[1] as number))[0][0]}` }
+        { label: "Total Visitors", value: data.timeRanges?.daily?.visitors ? 
+          data.timeRanges.daily.visitors.reduce((a: number, b: number) => a + b, 0) : 0 },
+        { label: "Most Viewed", value: data.pageViews ? 
+          Object.entries(data.pageViews).sort((a, b) => (b[1] as number) - (a[1] as number))[0]?.[0] || 'N/A' : 'N/A' },
+        { label: "Mobile Users", value: data.devices?.mobile ? `${data.devices.mobile}%` : 'N/A' },
+        { label: "Top Browser", value: data.browsers ? 
+          `${Object.entries(data.browsers).sort((a, b) => (b[1] as number) - (a[1] as number))[0]?.[0] || 'N/A'}` : 'N/A' }
       ];
     case "orders":
+      if (!Array.isArray(data)) return [];
       const orderData = processOrdersData(data);
       return [
         { label: "Total Orders", value: orderData.orderCount },

@@ -13,12 +13,22 @@ interface DataVisualizationProps {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
 const DataVisualization: React.FC<DataVisualizationProps> = ({ data, endpoint }) => {
-  const metrics = extractKeyMetrics(endpoint, data);
+  const metrics = data ? extractKeyMetrics(endpoint, data) : [];
   
   // Generate simple charts based on endpoint type
   const renderCharts = () => {
+    // If there's no data, show a placeholder
+    if (!data) {
+      return (
+        <div className="flex items-center justify-center h-[300px] bg-muted/30 rounded-md">
+          <p className="text-muted-foreground">No data available for visualization</p>
+        </div>
+      );
+    }
+    
     switch (endpoint) {
       case "analytics":
+        // Safe access to nested properties with optional chaining
         const processedData = data?.pageViews ? 
           Object.entries(data.pageViews).map(([name, value]) => ({ name, value })) : 
           [];
@@ -43,65 +53,83 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({ data, endpoint })
             
             <TabsContent value="pageviews" className="h-[300px] mt-4">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={processedData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip 
-                    contentStyle={{ 
-                      borderRadius: '8px', 
-                      boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-                      border: '1px solid #eaeaea'
-                    }} 
-                  />
-                  <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                </BarChart>
+                {processedData.length > 0 ? (
+                  <BarChart data={processedData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip 
+                      contentStyle={{ 
+                        borderRadius: '8px', 
+                        boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+                        border: '1px solid #eaeaea'
+                      }} 
+                    />
+                    <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                ) : (
+                  <div className="flex items-center justify-center h-full bg-muted/30 rounded-md">
+                    <p className="text-muted-foreground">No page view data available</p>
+                  </div>
+                )}
               </ResponsiveContainer>
             </TabsContent>
             
             <TabsContent value="visitors" className="h-[300px] mt-4">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={timeData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip 
-                    contentStyle={{ 
-                      borderRadius: '8px', 
-                      boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-                      border: '1px solid #eaeaea' 
-                    }} 
-                  />
-                  <Line type="monotone" dataKey="visitors" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 6 }} />
-                </LineChart>
+                {timeData.length > 0 ? (
+                  <LineChart data={timeData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip 
+                      contentStyle={{ 
+                        borderRadius: '8px', 
+                        boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+                        border: '1px solid #eaeaea' 
+                      }} 
+                    />
+                    <Line type="monotone" dataKey="visitors" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 6 }} />
+                  </LineChart>
+                ) : (
+                  <div className="flex items-center justify-center h-full bg-muted/30 rounded-md">
+                    <p className="text-muted-foreground">No visitor data available</p>
+                  </div>
+                )}
               </ResponsiveContainer>
             </TabsContent>
             
             <TabsContent value="devices" className="h-[300px] mt-4">
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={deviceData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={100}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {deviceData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    contentStyle={{ 
-                      borderRadius: '8px', 
-                      boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-                      border: '1px solid #eaeaea' 
-                    }} 
-                  />
-                </PieChart>
+                {deviceData.length > 0 ? (
+                  <PieChart>
+                    <Pie
+                      data={deviceData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      outerRadius={100}
+                      fill="#8884d8"
+                      dataKey="value"
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    >
+                      {deviceData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      contentStyle={{ 
+                        borderRadius: '8px', 
+                        boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+                        border: '1px solid #eaeaea' 
+                      }} 
+                    />
+                  </PieChart>
+                ) : (
+                  <div className="flex items-center justify-center h-full bg-muted/30 rounded-md">
+                    <p className="text-muted-foreground">No device data available</p>
+                  </div>
+                )}
               </ResponsiveContainer>
             </TabsContent>
           </Tabs>

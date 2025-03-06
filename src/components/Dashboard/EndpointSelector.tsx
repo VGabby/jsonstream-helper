@@ -18,20 +18,22 @@ interface EndpointSelectorProps {
   onEnvironmentChange: (env: Environment) => void;
   dataPoints?: number;
   isLoading?: boolean;
+  environment: Environment;
 }
 
 const EndpointSelector: React.FC<EndpointSelectorProps> = ({ 
   onFetchData,
   onEnvironmentChange,
   dataPoints,
-  isLoading = false
+  isLoading = false,
+  environment
 }) => {
   const handleEnvironmentChange = (value: string) => {
     onEnvironmentChange(value as Environment);
   };
 
   return (
-    <Card className="glass animate-slide-up">
+    <Card className="glass animate-slide-up mb-6">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
@@ -48,7 +50,7 @@ const EndpointSelector: React.FC<EndpointSelectorProps> = ({
           <div className="mb-4">
             <label className="text-sm font-medium mb-2 block">Environment</label>
             <Select 
-              value={CURRENT_ENVIRONMENT} 
+              value={environment} 
               onValueChange={handleEnvironmentChange}
             >
               <SelectTrigger className="w-full">

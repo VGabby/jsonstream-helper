@@ -6,6 +6,7 @@ import DataVisualization from '@/components/Dashboard/DataVisualization';
 import DataInspector from '@/components/Dashboard/DataInspector';
 import { mockEndpoints } from '@/utils/mockData';
 import { toast } from "@/components/ui/use-toast";
+import { Button } from "@/components/ui/button";
 import { Environment, CURRENT_ENVIRONMENT, setEnvironment, getEndpointUrl, API_ENDPOINTS } from '@/config/endpoints';
 
 const Index = () => {

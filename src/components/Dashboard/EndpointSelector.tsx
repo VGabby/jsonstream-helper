@@ -10,6 +10,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EndpointData } from '@/utils/mockData';
+import { CURRENT_ENVIRONMENT, getBaseUrl } from '@/config/endpoints';
 
 interface EndpointSelectorProps {
   endpoints: EndpointData[];
@@ -40,6 +41,15 @@ const EndpointSelector: React.FC<EndpointSelectorProps> = ({
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
+          <div className="mb-4">
+            <Badge variant="secondary" className="mb-2">
+              Environment: {CURRENT_ENVIRONMENT}
+            </Badge>
+            <div className="text-xs font-mono bg-background/70 p-2 rounded border">
+              Base URL: {getBaseUrl()}
+            </div>
+          </div>
+          
           <Select 
             value={selectedEndpoint} 
             onValueChange={onEndpointChange}

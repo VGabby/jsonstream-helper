@@ -16,8 +16,13 @@ export const BASE_URLS: Record<Environment, string> = {
 
 // Current environment - can be set based on deployment or local configuration
 // Default to development for local development
-export const CURRENT_ENVIRONMENT: Environment = 
+export let CURRENT_ENVIRONMENT: Environment = 
   (import.meta.env.VITE_ENVIRONMENT as Environment) || 'development';
+
+// Function to set the current environment
+export const setEnvironment = (env: Environment): void => {
+  CURRENT_ENVIRONMENT = env;
+};
 
 // Get the current base URL based on environment
 export const getBaseUrl = (): string => {
@@ -30,6 +35,7 @@ export const API_ENDPOINTS = {
   products: '/api/products',
   analytics: '/api/analytics',
   orders: '/api/orders',
+  monitorReport: '/monitor/report',
 };
 
 // Function to get the full URL for a specific endpoint

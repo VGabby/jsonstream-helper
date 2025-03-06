@@ -9,22 +9,26 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { EndpointData } from '@/utils/mockData';
-import { CURRENT_ENVIRONMENT, getBaseUrl } from '@/config/endpoints';
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
+import { Environment, CURRENT_ENVIRONMENT, getBaseUrl, setEnvironment } from '@/config/endpoints';
 
 interface EndpointSelectorProps {
-  endpoints: EndpointData[];
-  selectedEndpoint: string;
-  onEndpointChange: (endpoint: string) => void;
+  onFetchData: () => void;
+  onEnvironmentChange: (env: Environment) => void;
+  dataPoints?: number;
+  isLoading?: boolean;
 }
 
 const EndpointSelector: React.FC<EndpointSelectorProps> = ({ 
-  endpoints, 
-  selectedEndpoint, 
-  onEndpointChange 
+  onFetchData,
+  onEnvironmentChange,
+  dataPoints,
+  isLoading = false
 }) => {
-  // Find the details of the currently selected endpoint
-  const currentEndpoint = endpoints.find(e => e.id === selectedEndpoint);
+  const handleEnvironmentChange = (value: string) => {
+    onEnvironmentChange(value as Environment);
+  };
 
   return (
     <Card className="glass animate-slide-up">
@@ -32,52 +36,54 @@ const EndpointSelector: React.FC<EndpointSelectorProps> = ({
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-lg mb-1">Data Source</CardTitle>
-            <CardDescription>Select an API endpoint to analyze</CardDescription>
+            <CardDescription>Configure endpoint and fetch data</CardDescription>
           </div>
           <Badge variant="outline" className="px-3 py-1">
-            {endpoints.length} Available
+            {dataPoints !== undefined ? `${dataPoints} Data Points` : 'No Data'}
           </Badge>
         </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           <div className="mb-4">
-            <Badge variant="secondary" className="mb-2">
-              Environment: {CURRENT_ENVIRONMENT}
-            </Badge>
-            <div className="text-xs font-mono bg-background/70 p-2 rounded border">
+            <label className="text-sm font-medium mb-2 block">Environment</label>
+            <Select 
+              value={CURRENT_ENVIRONMENT} 
+              onValueChange={handleEnvironmentChange}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select environment" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="development">Development</SelectItem>
+                <SelectItem value="staging">Staging</SelectItem>
+                <SelectItem value="production">Production</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="text-xs font-mono bg-background/70 p-2 rounded border mt-2">
               Base URL: {getBaseUrl()}
             </div>
           </div>
           
-          <Select 
-            value={selectedEndpoint} 
-            onValueChange={onEndpointChange}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select an endpoint" />
-            </SelectTrigger>
-            <SelectContent>
-              {endpoints.map((endpoint) => (
-                <SelectItem 
-                  key={endpoint.id} 
-                  value={endpoint.id}
-                  className="transition-all-fast hover:bg-accent/50"
-                >
-                  {endpoint.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="pt-2">
+            <Button 
+              onClick={onFetchData} 
+              className="w-full"
+              disabled={isLoading}
+            >
+              <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              {isLoading ? 'Fetching...' : 'Fetch Data'}
+            </Button>
+          </div>
 
-          {currentEndpoint && (
+          {dataPoints !== undefined && (
             <div className="mt-4 p-4 bg-muted/50 rounded-md animate-fade-in">
               <h4 className="font-medium mb-1">Endpoint Details</h4>
               <p className="text-sm text-muted-foreground mb-2">
-                {currentEndpoint.description}
+                {`${dataPoints} data points available`}
               </p>
               <div className="text-xs font-mono bg-background/70 p-2 rounded border">
-                {currentEndpoint.url}
+                {`${getBaseUrl()}/monitor/report`}
               </div>
             </div>
           )}

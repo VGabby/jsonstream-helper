@@ -9,6 +9,7 @@ import { toast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { Environment, CURRENT_ENVIRONMENT, setEnvironment, getEndpointUrl, API_ENDPOINTS } from '@/config/endpoints';
 import StatusOverview from '@/components/Dashboard/StatusOverview';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ReportData {
   message: string;
@@ -52,18 +53,99 @@ const Index = () => {
     }
   };
 
+  // Fetch report data from Supabase for the current environment
+  const fetchReportFromDatabase = async (env: Environment) => {
+    try {
+      const { data, error } = await supabase
+        .from('monitor_reports')
+        .select('*')
+        .eq('environment', env)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        // Convert stored data back to the format we need
+        const storedReport: ReportData = {
+          message: data.message,
+          total: data.total_data_points,
+          status: data.status_data as Array<[string, number]>
+        };
+
+        setReportData(storedReport);
+        setDataPoints(data.total_data_points);
+        
+        // Also fetch sample visualization data
+        const endpoint = mockEndpoints.find(e => e.id === "analytics");
+        setEndpointData(endpoint?.sampleData || null);
+        
+        toast({
+          title: "Data Loaded",
+          description: `Loaded cached data for ${env} environment`,
+        });
+        
+        return true; // Data was found
+      }
+      
+      return false; // No data found
+    } catch (error) {
+      console.error("Error fetching data from database:", error);
+      return false;
+    }
+  };
+
   // Handle environment change
-  const handleEnvironmentChange = (env: Environment) => {
+  const handleEnvironmentChange = async (env: Environment) => {
     setCurrentEnvironment(env);
     setEnvironment(env);
-    // Reset data when environment changes
-    setEndpointData(null);
-    setDataPoints(undefined);
-    setReportData(null);
-    toast({
-      title: "Environment Changed",
-      description: `Switched to ${env} environment`,
-    });
+    
+    // Reset UI state
+    setIsLoading(true);
+    
+    // Try to fetch data from the database first
+    const dataFound = await fetchReportFromDatabase(env);
+    
+    if (!dataFound) {
+      // Reset data if no cached data was found
+      setEndpointData(null);
+      setDataPoints(undefined);
+      setReportData(null);
+      toast({
+        title: "Environment Changed",
+        description: `Switched to ${env} environment. No cached data found, please fetch new data.`,
+      });
+    }
+    
+    setIsLoading(false);
+  };
+
+  // Store report data in the database
+  const storeReportInDatabase = async (env: Environment, reportData: ReportData) => {
+    if (!reportData.total || !reportData.status) return;
+    
+    try {
+      const { error } = await supabase
+        .from('monitor_reports')
+        .upsert({
+          environment: env,
+          message: reportData.message,
+          total_data_points: reportData.total,
+          status_data: reportData.status
+        }, {
+          onConflict: 'environment'
+        });
+
+      if (error) throw error;
+      
+      console.log(`Stored report data for ${env} environment`);
+    } catch (error) {
+      console.error("Error storing report in database:", error);
+      toast({
+        title: "Database Error",
+        description: "Failed to cache the data in the database.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Fetch data from monitor/report endpoint
@@ -83,13 +165,17 @@ const Index = () => {
       const parsedData = parseReportMessage(mockResponse.message);
       
       if (parsedData) {
-        setReportData({
+        const newReportData = {
           message: mockResponse.message,
           total: parsedData.total,
           status: parsedData.status
-        });
+        };
         
+        setReportData(newReportData);
         setDataPoints(parsedData.total);
+        
+        // Store the data in the database for future use
+        await storeReportInDatabase(environment, newReportData);
       } else {
         setReportData({ message: mockResponse.message });
       }
@@ -100,7 +186,7 @@ const Index = () => {
       
       toast({
         title: "Data Fetched Successfully",
-        description: `Retrieved monitoring report from ${environment} environment`,
+        description: `Retrieved and cached monitoring report from ${environment} environment`,
       });
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -113,6 +199,17 @@ const Index = () => {
       setIsLoading(false);
     }
   };
+
+  // Check for existing data on initial load
+  useEffect(() => {
+    const checkForExistingData = async () => {
+      setIsLoading(true);
+      await fetchReportFromDatabase(environment);
+      setIsLoading(false);
+    };
+    
+    checkForExistingData();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/30">

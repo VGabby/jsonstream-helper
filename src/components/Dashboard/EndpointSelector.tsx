@@ -10,7 +10,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Database } from "lucide-react";
 import { Environment, CURRENT_ENVIRONMENT, getBaseUrl, setEnvironment } from '@/config/endpoints';
 
 interface EndpointSelectorProps {
@@ -40,8 +40,13 @@ const EndpointSelector: React.FC<EndpointSelectorProps> = ({
             <CardTitle className="text-lg mb-1">Data Source</CardTitle>
             <CardDescription>Configure endpoint and fetch data</CardDescription>
           </div>
-          <Badge variant="outline" className="px-3 py-1">
-            {dataPoints !== undefined ? `${dataPoints} Data Points` : 'No Data'}
+          <Badge variant="outline" className="px-3 py-1 flex items-center gap-1">
+            {dataPoints !== undefined ? (
+              <>
+                <Database className="h-3 w-3" />
+                <span>{dataPoints.toLocaleString()} Data Points</span>
+              </>
+            ) : 'No Data'}
           </Badge>
         </div>
       </CardHeader>
@@ -74,15 +79,20 @@ const EndpointSelector: React.FC<EndpointSelectorProps> = ({
               disabled={isLoading}
             >
               <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-              {isLoading ? 'Fetching...' : 'Fetch Data'}
+              {isLoading ? 'Loading...' : dataPoints !== undefined ? 'Refresh Data' : 'Fetch Data'}
             </Button>
+            {dataPoints !== undefined && (
+              <p className="text-xs text-center mt-2 text-muted-foreground">
+                Data for this environment is cached in Supabase
+              </p>
+            )}
           </div>
 
           {dataPoints !== undefined && (
             <div className="mt-4 p-4 bg-muted/50 rounded-md animate-fade-in">
               <h4 className="font-medium mb-1">Endpoint Details</h4>
               <p className="text-sm text-muted-foreground mb-2">
-                {`${dataPoints} data points available`}
+                {`${dataPoints.toLocaleString()} data points available`}
               </p>
               <div className="text-xs font-mono bg-background/70 p-2 rounded border">
                 {`${getBaseUrl()}/monitor/report`}

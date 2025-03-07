@@ -86,6 +86,10 @@ const StatusOverview: React.FC<StatusOverviewProps> = ({ reportData, environment
         <div className="text-xs font-mono bg-muted/50 p-2 rounded mt-4">
           {reportData.message}
         </div>
+        
+        <div className="text-xs text-muted-foreground mt-3 text-right">
+          Data stored in Supabase - automatically loaded when environment changes
+        </div>
       </CardContent>
     </Card>
   );

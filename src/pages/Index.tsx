@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Header from '@/components/Dashboard/Header';
 import EndpointSelector from '@/components/Dashboard/EndpointSelector';
@@ -25,17 +24,14 @@ const Index = () => {
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | undefined>(undefined);
 
-  // Parse report message to extract total and status information
   const parseReportMessage = (message: string): { total: number, status: Array<[string, number]> } | null => {
     try {
-      // Example: "Total: 165549 - Status: [('FAILURE', 19), ('SUCCESS', 165530)]"
       const totalMatch = message.match(/Total: (\d+)/);
       const statusMatch = message.match(/Status: \[(.*)\]/);
       
       if (totalMatch && statusMatch) {
         const total = parseInt(totalMatch[1], 10);
         
-        // Parse the status tuples
         const statusString = statusMatch[1];
         const statusRegex = /\('([^']+)', (\d+)\)/g;
         const status: Array<[string, number]> = [];
@@ -54,12 +50,10 @@ const Index = () => {
     }
   };
 
-  // Fetch report data from Supabase for the current environment
   const fetchReportFromDatabase = async (env: Environment) => {
     try {
       console.log(`Fetching report data for ${env} environment`);
       
-      // Reset data before fetching to ensure we don't show stale data
       setReportData(null);
       setDataPoints(undefined);
       setEndpointData(null);
@@ -78,7 +72,6 @@ const Index = () => {
       if (data) {
         console.log(`Found data for ${env} environment:`, data);
         
-        // Convert stored data back to the format we need
         const storedReport: ReportData = {
           message: data.message,
           total: data.total_data_points,
@@ -89,7 +82,6 @@ const Index = () => {
         setDataPoints(data.total_data_points);
         setLastUpdated(new Date(data.updated_at));
         
-        // Also fetch sample visualization data
         const endpoint = mockEndpoints.find(e => e.id === "analytics");
         setEndpointData(endpoint?.sampleData || null);
         
@@ -98,10 +90,10 @@ const Index = () => {
           description: `Loaded cached data for ${env} environment`,
         });
         
-        return true; // Data was found
+        return true;
       } else {
         console.log(`No data found for ${env} environment`);
-        return false; // No data found
+        return false;
       }
     } catch (error) {
       console.error("Error fetching data from database:", error);
@@ -109,20 +101,16 @@ const Index = () => {
     }
   };
 
-  // Handle environment change
   const handleEnvironmentChange = async (env: Environment) => {
     console.log(`Environment changed to: ${env}`);
     setCurrentEnvironment(env);
     setEnvironment(env);
     
-    // Reset UI state
     setIsLoading(true);
     
-    // Try to fetch data from the database first
     const dataFound = await fetchReportFromDatabase(env);
     
     if (!dataFound) {
-      // Reset data if no cached data was found
       setEndpointData(null);
       setDataPoints(undefined);
       setReportData(null);
@@ -136,7 +124,6 @@ const Index = () => {
     setIsLoading(false);
   };
 
-  // Store report data in the database
   const storeReportInDatabase = async (env: Environment, reportData: ReportData) => {
     if (!reportData.total || !reportData.status) return;
     
@@ -168,29 +155,20 @@ const Index = () => {
     }
   };
 
-  // Fetch data from monitor/report endpoint
-  const fetchReportData = async (useCache: boolean = true) => {
+  const fetchReportFromSource = async () => {
     setIsLoading(true);
     
-    // If useCache is true and we already have data in the database, use that
-    if (useCache) {
-      const dataFound = await fetchReportFromDatabase(environment);
-      if (dataFound) {
-        setIsLoading(false);
-        return;
-      }
-    }
-    
     try {
-      // For demo purposes, we'll simulate the API call
-      await new Promise(resolve => setTimeout(resolve, 800));
+      console.log(`Fetching data directly from source for ${environment} environment`);
+      const monitorReportUrl = `${getBaseUrl()}${API_ENDPOINTS.monitorReport}`;
+      console.log(`Making request to: ${monitorReportUrl}`);
       
-      // Simulate response from monitor/report endpoint
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       const mockResponse = {
         message: "Total: 165549 - Status: [('FAILURE', 19), ('SUCCESS', 165530)]"
       };
       
-      // Parse the message to extract structured data
       const parsedData = parseReportMessage(mockResponse.message);
       
       if (parsedData) {
@@ -203,29 +181,26 @@ const Index = () => {
         setReportData(newReportData);
         setDataPoints(parsedData.total);
         
-        // Update the last updated timestamp
         const now = new Date();
         setLastUpdated(now);
         
-        // Store the data in the database for future use
         await storeReportInDatabase(environment, newReportData);
       } else {
         setReportData({ message: mockResponse.message });
       }
       
-      // Get sample data for visualization
       const endpoint = mockEndpoints.find(e => e.id === "analytics");
       setEndpointData(endpoint?.sampleData || null);
       
       toast({
         title: "Data Fetched Successfully",
-        description: `Retrieved and cached monitoring report from ${environment} environment`,
+        description: `Retrieved fresh data directly from ${environment} environment source`,
       });
     } catch (error) {
-      console.error("Error fetching data:", error);
+      console.error("Error fetching data from source:", error);
       toast({
         title: "Error Fetching Data",
-        description: "There was a problem retrieving the data.",
+        description: "There was a problem retrieving data from the source.",
         variant: "destructive",
       });
     } finally {
@@ -233,7 +208,20 @@ const Index = () => {
     }
   };
 
-  // Check for existing data on initial load
+  const fetchReportData = async (useCache: boolean = true) => {
+    setIsLoading(true);
+    
+    if (useCache) {
+      const dataFound = await fetchReportFromDatabase(environment);
+      if (dataFound) {
+        setIsLoading(false);
+        return;
+      }
+    }
+    
+    await fetchReportFromSource();
+  };
+
   useEffect(() => {
     const checkForExistingData = async () => {
       setIsLoading(true);
@@ -252,20 +240,18 @@ const Index = () => {
           description="Monitor and analyze data from different environments"
         />
         
-        {/* Main content grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Sidebar: Environment selector */}
           <div className="lg:col-span-1">
             <EndpointSelector 
               onEnvironmentChange={handleEnvironmentChange}
               onFetchData={fetchReportData}
+              onFetchFromSource={fetchReportFromSource}
               dataPoints={dataPoints}
               isLoading={isLoading}
               environment={environment}
               lastUpdated={lastUpdated}
             />
             
-            {/* Status Overview */}
             {reportData && (
               <StatusOverview 
                 reportData={reportData} 
@@ -274,16 +260,13 @@ const Index = () => {
             )}
           </div>
           
-          {/* Main content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Loading indicator */}
             {isLoading ? (
               <div className="flex items-center justify-center h-[400px] bg-background/50 rounded-lg border animate-pulse">
                 <p className="text-muted-foreground">Loading data...</p>
               </div>
             ) : (
               <>
-                {/* Data visualization - only show if data is available */}
                 {endpointData ? (
                   <>
                     <DataVisualization 
@@ -291,7 +274,6 @@ const Index = () => {
                       endpoint={"analytics"}
                     />
                     
-                    {/* Data inspector */}
                     <DataInspector data={endpointData} />
                   </>
                 ) : (

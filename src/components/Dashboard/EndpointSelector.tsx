@@ -11,11 +11,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Database, CloudDownload, Clock } from "lucide-react";
-import { Environment, CURRENT_ENVIRONMENT, getBaseUrl, setEnvironment } from '@/config/endpoints';
+import { Environment, CURRENT_ENVIRONMENT, getBaseUrl, setEnvironment, getEndpointUrl } from '@/config/endpoints';
 
 interface EndpointSelectorProps {
   onFetchData: (useCache: boolean) => void;
   onEnvironmentChange: (env: Environment) => void;
+  onFetchFromSource: () => Promise<void>; // New prop for fetch from source function
   dataPoints?: number;
   isLoading?: boolean;
   environment: Environment;
@@ -25,6 +26,7 @@ interface EndpointSelectorProps {
 const EndpointSelector: React.FC<EndpointSelectorProps> = ({ 
   onFetchData,
   onEnvironmentChange,
+  onFetchFromSource, // New prop
   dataPoints,
   isLoading = false,
   environment,
@@ -109,7 +111,7 @@ const EndpointSelector: React.FC<EndpointSelectorProps> = ({
             
             {/* Fetch from Source button (bypasses cache) */}
             <Button 
-              onClick={() => onFetchData(false)} 
+              onClick={() => onFetchFromSource()} 
               variant="default"
               disabled={isLoading}
             >

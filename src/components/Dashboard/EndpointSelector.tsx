@@ -29,6 +29,7 @@ const EndpointSelector: React.FC<EndpointSelectorProps> = ({
   environment
 }) => {
   const handleEnvironmentChange = (value: string) => {
+    // Call the environment change handler with the new environment value
     onEnvironmentChange(value as Environment);
   };
 

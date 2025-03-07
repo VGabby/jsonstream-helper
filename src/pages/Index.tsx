@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Header from '@/components/Dashboard/Header';
 import EndpointSelector from '@/components/Dashboard/EndpointSelector';
@@ -56,15 +55,27 @@ const Index = () => {
   // Fetch report data from Supabase for the current environment
   const fetchReportFromDatabase = async (env: Environment) => {
     try {
+      console.log(`Fetching report data for ${env} environment`);
+      
+      // Reset data before fetching to ensure we don't show stale data
+      setReportData(null);
+      setDataPoints(undefined);
+      setEndpointData(null);
+
       const { data, error } = await supabase
         .from('monitor_reports')
         .select('*')
         .eq('environment', env)
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching from database:", error);
+        throw error;
+      }
 
       if (data) {
+        console.log(`Found data for ${env} environment:`, data);
+        
         // Convert stored data back to the format we need
         const storedReport: ReportData = {
           message: data.message,
@@ -85,9 +96,10 @@ const Index = () => {
         });
         
         return true; // Data was found
+      } else {
+        console.log(`No data found for ${env} environment`);
+        return false; // No data found
       }
-      
-      return false; // No data found
     } catch (error) {
       console.error("Error fetching data from database:", error);
       return false;
@@ -96,6 +108,7 @@ const Index = () => {
 
   // Handle environment change
   const handleEnvironmentChange = async (env: Environment) => {
+    console.log(`Environment changed to: ${env}`);
     setCurrentEnvironment(env);
     setEnvironment(env);
     
@@ -124,6 +137,8 @@ const Index = () => {
     if (!reportData.total || !reportData.status) return;
     
     try {
+      console.log(`Storing report data for ${env} environment`);
+      
       const { error } = await supabase
         .from('monitor_reports')
         .upsert({

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Header from '@/components/Dashboard/Header';
 import EndpointSelector from '@/components/Dashboard/EndpointSelector';
@@ -164,41 +163,88 @@ const Index = () => {
       const monitorReportUrl = `${getBaseUrl()}${API_ENDPOINTS.monitorReport}`;
       console.log(`Making request to: ${monitorReportUrl}`);
       
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const mockResponse = {
-        message: "Total: 165549 - Status: [('FAILURE', 19), ('SUCCESS', 165530)]"
-      };
-      
-      const parsedData = parseReportMessage(mockResponse.message);
-      
-      if (parsedData) {
-        const newReportData = {
-          message: mockResponse.message,
-          total: parsedData.total,
-          status: parsedData.status
+      try {
+        const response = await fetch(monitorReportUrl);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log("Received data from source:", data);
+        
+        if (!data.message) {
+          throw new Error("Response missing expected 'message' field");
+        }
+        
+        const parsedData = parseReportMessage(data.message);
+        
+        if (parsedData) {
+          const newReportData = {
+            message: data.message,
+            total: parsedData.total,
+            status: parsedData.status
+          };
+          
+          setReportData(newReportData);
+          setDataPoints(parsedData.total);
+          
+          const now = new Date();
+          setLastUpdated(now);
+          
+          await storeReportInDatabase(environment, newReportData);
+          
+          toast({
+            title: "Data Fetched Successfully",
+            description: `Retrieved fresh data directly from ${environment} environment source`,
+          });
+        } else {
+          setReportData({ message: data.message });
+          toast({
+            title: "Data Format Issue",
+            description: "Retrieved data but couldn't parse all fields",
+            variant: "destructive",
+          });
+        }
+      } catch (fetchError) {
+        console.error("Network or parsing error:", fetchError);
+        
+        // Fallback to mock data for demo purposes only
+        console.warn("Using fallback mock data since API endpoint isn't available");
+        const mockData = {
+          message: "Total: 169082 - Status: [('FAILURE', 19), ('SUCCESS', 169063)]"
         };
         
-        setReportData(newReportData);
-        setDataPoints(parsedData.total);
+        const parsedData = parseReportMessage(mockData.message);
         
-        const now = new Date();
-        setLastUpdated(now);
-        
-        await storeReportInDatabase(environment, newReportData);
-      } else {
-        setReportData({ message: mockResponse.message });
+        if (parsedData) {
+          const newReportData = {
+            message: mockData.message,
+            total: parsedData.total,
+            status: parsedData.status
+          };
+          
+          setReportData(newReportData);
+          setDataPoints(parsedData.total);
+          
+          const now = new Date();
+          setLastUpdated(now);
+          
+          await storeReportInDatabase(environment, newReportData);
+          
+          toast({
+            title: "Using Simulated Data",
+            description: "Could not connect to actual API endpoint. Using sample data.",
+            variant: "destructive",
+          });
+        }
       }
       
       const endpoint = mockEndpoints.find(e => e.id === "analytics");
       setEndpointData(endpoint?.sampleData || null);
       
-      toast({
-        title: "Data Fetched Successfully",
-        description: `Retrieved fresh data directly from ${environment} environment source`,
-      });
     } catch (error) {
-      console.error("Error fetching data from source:", error);
+      console.error("Error in fetchReportFromSource:", error);
       toast({
         title: "Error Fetching Data",
         description: "There was a problem retrieving data from the source.",

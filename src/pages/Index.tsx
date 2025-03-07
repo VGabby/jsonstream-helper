@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Header from '@/components/Dashboard/Header';
 import EndpointSelector from '@/components/Dashboard/EndpointSelector';
@@ -22,6 +23,7 @@ const Index = () => {
   const [dataPoints, setDataPoints] = useState<number | undefined>(undefined);
   const [environment, setCurrentEnvironment] = useState<Environment>(CURRENT_ENVIRONMENT);
   const [reportData, setReportData] = useState<ReportData | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | undefined>(undefined);
 
   // Parse report message to extract total and status information
   const parseReportMessage = (message: string): { total: number, status: Array<[string, number]> } | null => {
@@ -85,6 +87,7 @@ const Index = () => {
 
         setReportData(storedReport);
         setDataPoints(data.total_data_points);
+        setLastUpdated(new Date(data.updated_at));
         
         // Also fetch sample visualization data
         const endpoint = mockEndpoints.find(e => e.id === "analytics");
@@ -123,6 +126,7 @@ const Index = () => {
       setEndpointData(null);
       setDataPoints(undefined);
       setReportData(null);
+      setLastUpdated(undefined);
       toast({
         title: "Environment Changed",
         description: `Switched to ${env} environment. No cached data found, please fetch new data.`,
@@ -145,7 +149,8 @@ const Index = () => {
           environment: env,
           message: reportData.message,
           total_data_points: reportData.total,
-          status_data: reportData.status
+          status_data: reportData.status,
+          updated_at: new Date().toISOString()
         }, {
           onConflict: 'environment'
         });
@@ -164,8 +169,17 @@ const Index = () => {
   };
 
   // Fetch data from monitor/report endpoint
-  const fetchReportData = async () => {
+  const fetchReportData = async (useCache: boolean = true) => {
     setIsLoading(true);
+    
+    // If useCache is true and we already have data in the database, use that
+    if (useCache) {
+      const dataFound = await fetchReportFromDatabase(environment);
+      if (dataFound) {
+        setIsLoading(false);
+        return;
+      }
+    }
     
     try {
       // For demo purposes, we'll simulate the API call
@@ -188,6 +202,10 @@ const Index = () => {
         
         setReportData(newReportData);
         setDataPoints(parsedData.total);
+        
+        // Update the last updated timestamp
+        const now = new Date();
+        setLastUpdated(now);
         
         // Store the data in the database for future use
         await storeReportInDatabase(environment, newReportData);
@@ -244,6 +262,7 @@ const Index = () => {
               dataPoints={dataPoints}
               isLoading={isLoading}
               environment={environment}
+              lastUpdated={lastUpdated}
             />
             
             {/* Status Overview */}
@@ -278,7 +297,7 @@ const Index = () => {
                 ) : (
                   <div className="flex flex-col items-center justify-center h-[400px] bg-background/50 rounded-lg border">
                     <p className="text-muted-foreground mb-4">No data available</p>
-                    <Button onClick={fetchReportData} variant="outline">Fetch Data to Begin</Button>
+                    <Button onClick={() => fetchReportData(false)} variant="outline">Fetch Data to Begin</Button>
                   </div>
                 )}
               </>

@@ -10,15 +10,16 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Database } from "lucide-react";
+import { RefreshCw, Database, CloudDownload, Clock } from "lucide-react";
 import { Environment, CURRENT_ENVIRONMENT, getBaseUrl, setEnvironment } from '@/config/endpoints';
 
 interface EndpointSelectorProps {
-  onFetchData: () => void;
+  onFetchData: (useCache: boolean) => void;
   onEnvironmentChange: (env: Environment) => void;
   dataPoints?: number;
   isLoading?: boolean;
   environment: Environment;
+  lastUpdated?: Date;
 }
 
 const EndpointSelector: React.FC<EndpointSelectorProps> = ({ 
@@ -26,11 +27,25 @@ const EndpointSelector: React.FC<EndpointSelectorProps> = ({
   onEnvironmentChange,
   dataPoints,
   isLoading = false,
-  environment
+  environment,
+  lastUpdated
 }) => {
   const handleEnvironmentChange = (value: string) => {
     // Call the environment change handler with the new environment value
     onEnvironmentChange(value as Environment);
+  };
+
+  // Format the timestamp to a readable format
+  const formatTimestamp = (date?: Date) => {
+    if (!date) return 'Never';
+    return new Intl.DateTimeFormat('default', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    }).format(date);
   };
 
   return (
@@ -73,17 +88,37 @@ const EndpointSelector: React.FC<EndpointSelectorProps> = ({
             </div>
           </div>
           
-          <div className="pt-2">
+          {/* Last updated timestamp */}
+          {lastUpdated && (
+            <div className="text-xs text-muted-foreground flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              Last updated: {formatTimestamp(lastUpdated)}
+            </div>
+          )}
+          
+          <div className="pt-2 grid grid-cols-2 gap-3">
+            {/* Refresh button (uses cache if available) */}
             <Button 
-              onClick={onFetchData} 
-              className="w-full"
+              onClick={() => onFetchData(true)} 
+              variant="outline"
               disabled={isLoading}
             >
               <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-              {isLoading ? 'Loading...' : dataPoints !== undefined ? 'Refresh Data' : 'Fetch Data'}
+              {isLoading ? 'Loading...' : 'Refresh'}
             </Button>
+            
+            {/* Fetch from Source button (bypasses cache) */}
+            <Button 
+              onClick={() => onFetchData(false)} 
+              variant="default"
+              disabled={isLoading}
+            >
+              <CloudDownload className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              {isLoading ? 'Loading...' : 'Fetch from Source'}
+            </Button>
+            
             {dataPoints !== undefined && (
-              <p className="text-xs text-center mt-2 text-muted-foreground">
+              <p className="text-xs text-center mt-2 text-muted-foreground col-span-2">
                 Data for this environment is cached in Supabase
               </p>
             )}

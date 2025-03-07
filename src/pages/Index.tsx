@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Header from '@/components/Dashboard/Header';
 import EndpointSelector from '@/components/Dashboard/EndpointSelector';
@@ -6,7 +7,7 @@ import DataInspector from '@/components/Dashboard/DataInspector';
 import { mockEndpoints } from '@/utils/mockData';
 import { toast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
-import { Environment, CURRENT_ENVIRONMENT, setEnvironment, getEndpointUrl, API_ENDPOINTS } from '@/config/endpoints';
+import { Environment, CURRENT_ENVIRONMENT, setEnvironment, getEndpointUrl, API_ENDPOINTS, getBaseUrl } from '@/config/endpoints';
 import StatusOverview from '@/components/Dashboard/StatusOverview';
 import { supabase } from '@/integrations/supabase/client';
 
